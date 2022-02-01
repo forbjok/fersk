@@ -3,6 +3,8 @@ mod config;
 mod git;
 mod util;
 
+use std::path::PathBuf;
+
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use config::Config;
@@ -24,6 +26,8 @@ enum Command {
 
     #[clap(name = "run", about = "Run a command")]
     Run {
+        #[clap(long = "path", help = "Specify repository path")]
+        path: Option<PathBuf>,
         #[clap(long = "branch", help = "Specify branch to check out")]
         branch: Option<String>,
         #[clap(long = "commit", help = "Specify commit to check out")]
@@ -43,19 +47,27 @@ fn main() -> Result<(), anyhow::Error> {
 
     let work_root = cfg.work_path;
 
-    let current_path = std::env::current_dir().with_context(|| "Error getting current directory")?;
-
     match opt.command {
         Command::GenerateConfig => {
             Config::write_default().with_context(|| "Error writing default config")?;
         }
-        Command::Run { branch, commit, args } => {
+        Command::Run {
+            path,
+            branch,
+            commit,
+            args,
+        } => {
             if args.is_empty() {
                 return Err(anyhow!("No command specified."));
             }
 
-            let repository_root_path =
-                git::get_repository_root(current_path).with_context(|| "Not a git repository.")?;
+            let path = if let Some(path) = path {
+                path
+            } else {
+                std::env::current_dir().with_context(|| "Error getting current directory")?
+            };
+
+            let repository_root_path = git::get_repository_root(path).with_context(|| "Not a git repository.")?;
 
             let repository_root_path = util::normalize_path(repository_root_path);
 
