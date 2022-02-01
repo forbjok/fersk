@@ -3,7 +3,7 @@ mod config;
 mod git;
 mod util;
 
-use anyhow::Context;
+use anyhow::{anyhow, Context};
 use clap::Parser;
 use config::Config;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
@@ -46,6 +46,10 @@ fn main() -> Result<(), anyhow::Error> {
             Config::write_default().with_context(|| "Error writing default config")?;
         }
         Command::Run { branch, args } => {
+            if args.is_empty() {
+                return Err(anyhow!("No command specified."));
+            }
+
             let repository_root_path =
                 git::get_repository_root(current_path).with_context(|| "Not a git repository.")?;
 
