@@ -64,7 +64,7 @@ fn main() -> Result<(), anyhow::Error> {
 
             println!("Source repository: {}", repository_root_path.display());
             println!("Working directory: {}", work_path.display());
-            println!("Branch: {}", &branch);
+            println!("Branch: {branch}");
 
             if work_path.exists() {
                 git::fetch(&work_path, "origin").with_context(|| "Error fetching repository")?;
@@ -79,7 +79,7 @@ fn main() -> Result<(), anyhow::Error> {
             git::cleanse(&work_path).with_context(|| "Error cleansing repository")?;
 
             // Check out branch in working directory
-            git::checkout(&work_path, &branch).with_context(|| "Error checking out branch")?;
+            git::checkout(&work_path, &format!("origin/{branch}")).with_context(|| "Error checking out branch")?;
 
             // Run command
             command::exec_command(&args[0], |c| {
