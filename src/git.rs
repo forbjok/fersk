@@ -1,4 +1,5 @@
 use std::ffi::OsStr;
+use std::fmt::Display;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::str::FromStr;
@@ -11,6 +12,32 @@ pub enum GitError {
     Execute,
     #[error("unknown error")]
     Unknown(Option<i32>),
+}
+
+#[derive(Clone)]
+pub enum GitRev {
+    Branch(String),
+    Commit(String),
+}
+
+impl AsRef<str> for GitRev {
+    fn as_ref(&self) -> &str {
+        match self {
+            Self::Branch(v) => v,
+            Self::Commit(v) => v,
+        }
+    }
+}
+
+impl Display for GitRev {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let s = match self {
+            Self::Branch(v) => v,
+            Self::Commit(v) => v,
+        };
+
+        f.write_str(s)
+    }
 }
 
 /// Cleanse repository
@@ -31,11 +58,14 @@ pub fn cleanse(path: impl AsRef<Path>) -> Result<(), GitError> {
 }
 
 /// Check out branch in repository
-pub fn checkout(path: impl AsRef<Path>, branch: &str) -> Result<(), GitError> {
+pub fn checkout<B>(path: impl AsRef<Path>, rev: B) -> Result<(), GitError>
+where
+    B: AsRef<str>,
+{
     exec_git(|c| {
         c.current_dir(&path);
 
-        c.args(&["checkout", branch]);
+        c.args(&["checkout", rev.as_ref()]);
     })?;
 
     Ok(())
@@ -77,7 +107,7 @@ pub fn get_repository_root(path: impl AsRef<Path>) -> Result<PathBuf, GitError> 
 }
 
 /// Get current branch or commit hash
-pub fn get_current_branch(path: impl AsRef<Path>) -> Result<String, GitError> {
+pub fn get_current_head(path: impl AsRef<Path>) -> Result<GitRev, GitError> {
     let output = exec_git_output(|c| {
         c.current_dir(&path);
 
@@ -86,7 +116,7 @@ pub fn get_current_branch(path: impl AsRef<Path>) -> Result<String, GitError> {
 
     let out = String::from_utf8_lossy(&output.stdout).trim_end().to_string();
     if out != "HEAD" {
-        return Ok(out);
+        return Ok(GitRev::Branch(out));
     }
 
     let output = exec_git_output(|c| {
@@ -95,7 +125,9 @@ pub fn get_current_branch(path: impl AsRef<Path>) -> Result<String, GitError> {
         c.args(&["rev-parse", "HEAD"]);
     })?;
 
-    Ok(String::from_utf8_lossy(&output.stdout).trim_end().to_string())
+    Ok(GitRev::Commit(
+        String::from_utf8_lossy(&output.stdout).trim_end().to_string(),
+    ))
 }
 
 /// Execute git command and get status

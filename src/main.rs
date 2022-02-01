@@ -8,6 +8,8 @@ use clap::Parser;
 use config::Config;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
+use crate::git::GitRev;
+
 #[derive(Debug, Parser)]
 #[clap(name = "fersk", version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
 struct Opt {
@@ -22,8 +24,10 @@ enum Command {
 
     #[clap(name = "run", about = "Run a command")]
     Run {
-        #[clap(long = "branch", help = "Specify branch to check out instead of the current branch")]
+        #[clap(long = "branch", help = "Specify branch to check out")]
         branch: Option<String>,
+        #[clap(long = "commit", help = "Specify commit to check out")]
+        commit: Option<String>,
         #[clap(last = true)]
         args: Vec<String>,
     },
@@ -45,7 +49,7 @@ fn main() -> Result<(), anyhow::Error> {
         Command::GenerateConfig => {
             Config::write_default().with_context(|| "Error writing default config")?;
         }
-        Command::Run { branch, args } => {
+        Command::Run { branch, commit, args } => {
             if args.is_empty() {
                 return Err(anyhow!("No command specified."));
             }
@@ -57,9 +61,11 @@ fn main() -> Result<(), anyhow::Error> {
 
             // If a branch is specified, use that. Otherwise, use the branch we're currently in.
             let branch = if let Some(branch) = branch {
-                branch
+                GitRev::Branch(branch)
+            } else if let Some(commit) = commit {
+                GitRev::Commit(commit)
             } else {
-                git::get_current_branch(&repository_root_path).with_context(|| "Error getting current branch")?
+                git::get_current_head(&repository_root_path).with_context(|| "Error getting current branch")?
             };
 
             let source_path_hash = util::hash::hash_bytes(repository_root_path.to_string_lossy().as_bytes());
@@ -69,6 +75,12 @@ fn main() -> Result<(), anyhow::Error> {
             println!("Source repository: {}", repository_root_path.display());
             println!("Working directory: {}", work_path.display());
             println!("Branch: {branch}");
+
+            let branch = match branch {
+                // If it's a branch, add remote specification
+                GitRev::Branch(branch) => GitRev::Branch(format!("origin/{branch}")),
+                v => v,
+            };
 
             if work_path.exists() {
                 git::fetch(&work_path, "origin").with_context(|| "Error fetching repository")?;
@@ -83,7 +95,7 @@ fn main() -> Result<(), anyhow::Error> {
             git::cleanse(&work_path).with_context(|| "Error cleansing repository")?;
 
             // Check out branch in working directory
-            git::checkout(&work_path, &format!("origin/{branch}")).with_context(|| "Error checking out branch")?;
+            git::checkout(&work_path, &branch).with_context(|| "Error checking out branch")?;
 
             // Run command
             command::exec_command(&args[0], |c| {
