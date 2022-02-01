@@ -10,7 +10,7 @@ use clap::Parser;
 use config::Config;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-use crate::git::GitRev;
+use crate::{git::GitRev, util::pid::PidLock};
 
 #[derive(Debug, Parser)]
 #[clap(name = "fersk", version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
@@ -67,9 +67,19 @@ fn main() -> Result<(), anyhow::Error> {
                 std::env::current_dir().with_context(|| "Error getting current directory")?
             };
 
+            // Determine repository root path
             let repository_root_path = git::get_repository_root(path).with_context(|| "Not a git repository.")?;
 
+            // Normalize repository root path
             let repository_root_path = util::normalize_path(repository_root_path);
+
+            let source_path_hash = util::hash::hash_bytes(repository_root_path.to_string_lossy().as_bytes());
+
+            let pidlock_path = work_root.join(format!(".locks/{source_path_hash}.pid"));
+            util::create_parent_dir(&pidlock_path).with_context(|| "Cannot create PID lock directory.")?;
+            let _pidlock = PidLock::acquire(pidlock_path).with_context(|| {
+                "Could not acquire PID lock. Another process is already running in this repository."
+            })?;
 
             // If a branch is specified, use that. Otherwise, use the branch we're currently in.
             let branch = if let Some(branch) = branch {
@@ -79,8 +89,6 @@ fn main() -> Result<(), anyhow::Error> {
             } else {
                 git::get_current_head(&repository_root_path).with_context(|| "Error getting current branch")?
             };
-
-            let source_path_hash = util::hash::hash_bytes(repository_root_path.to_string_lossy().as_bytes());
 
             let work_path = work_root.join(source_path_hash);
 
