@@ -22,6 +22,8 @@ enum Command {
 
     #[clap(name = "run", about = "Run a command")]
     Run {
+        #[clap(long = "branch", help = "Specify branch to check out instead of the current branch")]
+        branch: Option<String>,
         #[clap(last = true)]
         args: Vec<String>,
     },
@@ -43,14 +45,18 @@ fn main() -> Result<(), anyhow::Error> {
         Command::GenerateConfig => {
             Config::write_default().with_context(|| "Error writing default config")?;
         }
-        Command::Run { args } => {
+        Command::Run { branch, args } => {
             let repository_root_path =
                 git::get_repository_root(current_path).with_context(|| "Not a git repository.")?;
 
             let repository_root_path = util::normalize_path(repository_root_path);
 
-            let current_branch =
-                git::get_current_branch(&repository_root_path).with_context(|| "Error getting current branch")?;
+            // If a branch is specified, use that. Otherwise, use the branch we're currently in.
+            let branch = if let Some(branch) = branch {
+                branch
+            } else {
+                git::get_current_branch(&repository_root_path).with_context(|| "Error getting current branch")?
+            };
 
             let source_path_hash = util::hash::hash_bytes(repository_root_path.to_string_lossy().as_bytes());
 
@@ -58,7 +64,7 @@ fn main() -> Result<(), anyhow::Error> {
 
             println!("Source repository: {}", repository_root_path.display());
             println!("Working directory: {}", work_path.display());
-            println!("Current branch: {}", &current_branch);
+            println!("Branch: {}", &branch);
 
             if work_path.exists() {
                 git::fetch(&work_path, "origin").with_context(|| "Error fetching repository")?;
@@ -73,7 +79,7 @@ fn main() -> Result<(), anyhow::Error> {
             git::cleanse(&work_path).with_context(|| "Error cleansing repository")?;
 
             // Check out branch in working directory
-            git::checkout(&work_path, &current_branch).with_context(|| "Error checking out branch")?;
+            git::checkout(&work_path, &branch).with_context(|| "Error checking out branch")?;
 
             // Run command
             command::exec_command(&args[0], |c| {
