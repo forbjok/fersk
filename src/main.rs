@@ -3,14 +3,18 @@ mod config;
 mod git;
 mod util;
 
-use std::path::PathBuf;
+use std::{path::PathBuf, process::Stdio};
 
 use anyhow::{anyhow, Context};
 use clap::Parser;
 use config::Config;
+use serde_derive::Serialize;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-use crate::{git::GitRev, util::pid::PidLock};
+use crate::{
+    git::{Git, GitRev},
+    util::pid::PidLock,
+};
 
 #[derive(Debug, Parser)]
 #[clap(name = "fersk", version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
@@ -34,7 +38,17 @@ enum Command {
         commit: Option<String>,
         #[clap(last = true)]
         args: Vec<String>,
+
+        #[clap(long = "json-out", help = "Output json information on success")]
+        json_out: bool,
     },
+}
+
+#[derive(Serialize)]
+struct JsonOutput {
+    source_repository_path: PathBuf,
+    working_repository_path: PathBuf,
+    branch: String,
 }
 
 fn main() -> Result<(), anyhow::Error> {
@@ -56,6 +70,7 @@ fn main() -> Result<(), anyhow::Error> {
             branch,
             commit,
             args,
+            json_out,
         } => {
             if args.is_empty() {
                 return Err(anyhow!("No command specified."));
@@ -67,8 +82,10 @@ fn main() -> Result<(), anyhow::Error> {
                 std::env::current_dir().with_context(|| "Error getting current directory")?
             };
 
+            let git = Git { silent: json_out };
+
             // Determine repository root path
-            let repository_root_path = git::get_repository_root(path).with_context(|| "Not a git repository.")?;
+            let repository_root_path = git.get_repository_root(path).with_context(|| "Not a git repository.")?;
 
             // Normalize repository root path
             let repository_root_path = util::normalize_path(repository_root_path);
@@ -87,14 +104,17 @@ fn main() -> Result<(), anyhow::Error> {
             } else if let Some(commit) = commit {
                 GitRev::Commit(commit)
             } else {
-                git::get_current_head(&repository_root_path).with_context(|| "Error getting current branch")?
+                git.get_current_head(&repository_root_path)
+                    .with_context(|| "Error getting current branch")?
             };
 
             let work_path = work_root.join(source_path_hash);
 
-            println!("Source repository: {}", repository_root_path.display());
-            println!("Working directory: {}", work_path.display());
-            println!("Branch: {branch}");
+            if !json_out {
+                println!("Source repository: {}", repository_root_path.display());
+                println!("Working directory: {}", work_path.display());
+                println!("Branch: {branch}");
+            }
 
             let branch = match branch {
                 // If it's a branch, add remote specification
@@ -103,25 +123,43 @@ fn main() -> Result<(), anyhow::Error> {
             };
 
             if work_path.exists() {
-                git::fetch(&work_path, "origin").with_context(|| "Error fetching repository")?;
+                git.fetch(&work_path, "origin")
+                    .with_context(|| "Error fetching repository")?;
             } else {
                 std::fs::create_dir_all(&work_path)
                     .with_context(|| format!("Error creating work directory: {}", work_path.display()))?;
 
-                git::clone(repository_root_path, &work_path).with_context(|| "Error cloning git repository")?;
+                git.clone(&repository_root_path, &work_path)
+                    .with_context(|| "Error cloning git repository")?;
             }
 
             // Cleanse repository
-            git::cleanse(&work_path).with_context(|| "Error cleansing repository")?;
+            git.cleanse(&work_path).with_context(|| "Error cleansing repository")?;
 
             // Check out branch in working directory
-            git::checkout(&work_path, &branch).with_context(|| "Error checking out branch")?;
+            git.checkout(&work_path, &branch)
+                .with_context(|| "Error checking out branch")?;
 
             // Run command
             command::exec_command(&args[0], |c| {
-                c.current_dir(work_path);
+                if json_out {
+                    c.stdout(Stdio::null());
+                }
+
+                c.current_dir(&work_path);
                 c.args(&args[1..]);
             })?;
+
+            if json_out {
+                let output = JsonOutput {
+                    source_repository_path: repository_root_path,
+                    working_repository_path: work_path,
+                    branch: branch.to_string(),
+                };
+
+                let stdio = std::io::stdout();
+                serde_json::to_writer_pretty(stdio.lock(), &output)?;
+            }
         }
     };
 
