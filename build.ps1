@@ -35,7 +35,7 @@ function BuildTarget([string] $suffix, [string] $Target) {
   Copy-Item "target\$Target\release\$executableName.exe" -Destination $stagingPath
 
   # Create distribution archive
-  CreateArchive "fersk-$version-$suffix" $stagingPath
+  CreateArchive "$executableName-$version-$suffix" $stagingPath
 }
 
 <# Create distribution archive #>
