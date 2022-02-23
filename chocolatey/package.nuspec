@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!-- Do not remove this test for UTF-8: if “Ω” doesn’t appear as greek uppercase omega letter enclosed in quotation marks, you should use an editor that supports UTF-8, not this one. -->
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <!-- Read this before publishing packages to chocolatey.org: https://github.com/chocolatey/chocolatey/wiki/CreatePackages -->
+    <id>fersk</id>
+    <title>Fersk</title>
+    <version>$version$</version>
+    <authors>Kjartan F. Kvamme</authors>
+    <owners>Kjartan F. Kvamme</owners>
+    <summary>Convenience utility for running a command (ex. a script) in a clean copy of the current git repository.</summary>
+    <description>Convenience utility for running a command (ex. a script) in a clean copy of the current git repository without interfering with the original repository's working directory. Mainly useful for local build and deployment operations.</description>
+    <projectUrl>https://github.com/forbjok/fersk</projectUrl>
+    <packageSourceUrl>https://github.com/forbjok/fersk</packageSourceUrl>
+    <projectSourceUrl>https://github.com/forbjok/fersk</projectSourceUrl>
+    <docsUrl>https://github.com/forbjok/fersk</docsUrl>
+    <bugTrackerUrl>https://github.com/forbjok/fersk/issues</bugTrackerUrl>
+    <tags>fersk script deploy clean git repository</tags>
+    <licenseUrl>https://github.com/forbjok/fersk/blob/master/LICENSE-MIT</licenseUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+  </metadata>
+  <files>
+    <file src="tools\*" target="tools" />
+    <file src="..\dist\VERSION.txt" target="tools" />
+    <file src="..\dist\fersk-$version$-windows-i686.zip.sha256.txt" target="tools" />
+    <file src="..\dist\fersk-$version$-windows-x86_64.zip.sha256.txt" target="tools" />
+  </files>
+</package>
