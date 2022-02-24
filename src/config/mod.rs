@@ -22,7 +22,9 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         Self {
-            work_path: dirs::cache_dir().expect("No default cache directory found. Create a config and specify it."),
+            work_path: dirs::cache_dir()
+                .expect("No default cache directory found. Create a config and specify it.")
+                .join(CONFIG_DIR),
         }
     }
 }
