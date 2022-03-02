@@ -140,8 +140,7 @@ impl Git {
         self.exec(|c| {
             c.current_dir(path);
 
-            c.arg("fetch");
-            c.arg(remote_name);
+            c.args(&["fetch", remote_name, "--prune"]);
         })?;
 
         Ok(())
