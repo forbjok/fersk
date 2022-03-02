@@ -78,11 +78,58 @@ impl Git {
     }
 
     /// Clone repository
-    pub fn clone(&self, source: impl AsRef<OsStr>, destination: impl AsRef<Path>) -> Result<(), GitError> {
+    pub fn clone(
+        &self,
+        source: impl AsRef<OsStr>,
+        destination: impl AsRef<Path>,
+        origin_name: Option<&str>,
+    ) -> Result<(), GitError> {
         self.exec(|c| {
             c.arg("clone");
+
+            if let Some(origin_name) = origin_name {
+                c.args(&["--origin", origin_name]);
+            }
+
             c.arg(source);
             c.arg(destination.as_ref());
+        })?;
+
+        Ok(())
+    }
+
+    /// Get remote url
+    pub fn get_remote_url(&self, path: impl AsRef<Path>, remote_name: &str) -> Result<String, GitError> {
+        match self.exec_output(|c| {
+            c.current_dir(path);
+
+            c.args(&["remote", "get-url", remote_name]);
+        }) {
+            Ok(output) => Ok(String::from_utf8_lossy(&output.stdout).trim_end().to_owned()),
+            Err(err) => Err(err),
+        }
+    }
+
+    /// Set remote url
+    pub fn force_remote_url(
+        &self,
+        path: impl AsRef<Path>,
+        remote_name: &str,
+        url: impl AsRef<OsStr>,
+    ) -> Result<(), GitError> {
+        // Remove remote if it already exists
+        self.exec(|c| {
+            c.current_dir(&path);
+            c.args(&["remote", "remove", remote_name]);
+        })
+        .ok();
+
+        // Add remote
+        self.exec(|c| {
+            c.current_dir(&path);
+
+            c.args(&["remote", "add", remote_name]);
+            c.arg(url);
         })?;
 
         Ok(())

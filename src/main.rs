@@ -16,6 +16,8 @@ use crate::{
     util::pid::PidLock,
 };
 
+const FERSK_ORIGIN: &str = "fersk-origin";
+
 #[derive(Debug, Parser)]
 #[clap(name = "fersk", version = env!("CARGO_PKG_VERSION"), author = env!("CARGO_PKG_AUTHORS"))]
 struct Opt {
@@ -36,6 +38,8 @@ enum Command {
         branch: Option<String>,
         #[clap(long = "commit", help = "Specify commit to check out")]
         commit: Option<String>,
+        #[clap(long = "copy-remote", help = "Specify remote to copy to the working repository")]
+        copy_remote: Option<String>,
         #[clap(last = true)]
         args: Vec<String>,
 
@@ -69,6 +73,7 @@ fn main() -> Result<(), anyhow::Error> {
             path,
             branch,
             commit,
+            copy_remote,
             args,
             json_out,
         } => {
@@ -118,19 +123,31 @@ fn main() -> Result<(), anyhow::Error> {
 
             let branch = match branch {
                 // If it's a branch, add remote specification
-                GitRev::Branch(branch) => GitRev::Branch(format!("origin/{branch}")),
+                GitRev::Branch(branch) => GitRev::Branch(format!("{FERSK_ORIGIN}/{branch}")),
                 v => v,
             };
 
             if work_path.exists() {
-                git.fetch(&work_path, "origin")
+                git.force_remote_url(&work_path, FERSK_ORIGIN, &repository_root_path)
+                    .with_context(|| "Error setting Fersk remote URL")?;
+
+                git.fetch(&work_path, FERSK_ORIGIN)
                     .with_context(|| "Error fetching repository")?;
             } else {
                 std::fs::create_dir_all(&work_path)
                     .with_context(|| format!("Error creating work directory: {}", work_path.display()))?;
 
-                git.clone(&repository_root_path, &work_path)
+                git.clone(&repository_root_path, &work_path, Some(FERSK_ORIGIN))
                     .with_context(|| "Error cloning git repository")?;
+            }
+
+            if let Some(copy_remote) = copy_remote {
+                let remote_url = git
+                    .get_remote_url(&repository_root_path, &copy_remote)
+                    .with_context(|| "Error getting copy remote URL")?;
+
+                git.force_remote_url(&work_path, &copy_remote, &remote_url)
+                    .with_context(|| "Error setting copy remote URL")?;
             }
 
             // Cleanse repository
