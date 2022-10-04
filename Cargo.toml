@@ -14,7 +14,7 @@ opt-level = "z"
 
 [dependencies]
 anyhow = "1.0.53"
-clap = { version = "3.0.13", features = ["derive"] }
+clap = { version = "4.0.9", features = ["derive"] }
 dirs = "4.0.0"
 hex = "0.4.3"
 serde = "1.0.136"
