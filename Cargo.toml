@@ -3,7 +3,8 @@ name = "fersk"
 version = "0.3.0"
 edition = "2021"
 authors = ["Kjartan F. Kvamme <forbjok@gmail.com>"]
-license = "MIT/Apache-2.0"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/forbjok/fersk.git"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -13,16 +14,16 @@ lto = true
 opt-level = "z"
 
 [dependencies]
-anyhow = "1.0.53"
-clap = { version = "3.0.13", features = ["derive"] }
-dirs = "4.0.0"
+anyhow = "1.0.75"
+clap = { version = "4.4.2", features = ["derive"] }
+dirs = "5.0.1"
 hex = "0.4.3"
-serde = "1.0.136"
-serde_derive = "1.0.136"
-serde_json = "1.0.79"
-sha2 = "0.10.1"
-sysinfo = "0.23.0"
-thiserror = "1.0.30"
-toml = "0.5.8"
-tracing = "0.1.29"
-tracing-subscriber = { version = "0.3.7", features = ["env-filter"] }
+serde = "1.0.188"
+serde_derive = "1.0.188"
+serde_json = "1.0.105"
+sha2 = "0.10.7"
+sysinfo = "0.29.9"
+thiserror = "1.0.47"
+toml = "0.7.6"
+tracing = "0.1.37"
+tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
