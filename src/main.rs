@@ -146,7 +146,7 @@ fn main() -> Result<(), anyhow::Error> {
                     .get_remote_url(&repository_root_path, &copy_remote)
                     .with_context(|| "Error getting copy remote URL")?;
 
-                git.force_remote_url(&work_path, &copy_remote, &remote_url)
+                git.force_remote_url(&work_path, &copy_remote, remote_url)
                     .with_context(|| "Error setting copy remote URL")?;
             }
 

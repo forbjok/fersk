@@ -51,13 +51,13 @@ impl Git {
         self.exec(|c| {
             c.current_dir(&path);
 
-            c.args(&["reset", "--hard"]);
+            c.args(["reset", "--hard"]);
         })?;
 
         self.exec(|c| {
             c.current_dir(&path);
 
-            c.args(&["clean", "-fdx"]);
+            c.args(["clean", "-fdx"]);
         })?;
 
         Ok(())
@@ -71,7 +71,7 @@ impl Git {
         self.exec(|c| {
             c.current_dir(&path);
 
-            c.args(&["checkout", rev.as_ref()]);
+            c.args(["checkout", rev.as_ref()]);
         })?;
 
         Ok(())
@@ -88,7 +88,7 @@ impl Git {
             c.arg("clone");
 
             if let Some(origin_name) = origin_name {
-                c.args(&["--origin", origin_name]);
+                c.args(["--origin", origin_name]);
             }
 
             c.arg(source);
@@ -103,7 +103,7 @@ impl Git {
         match self.exec_output(|c| {
             c.current_dir(path);
 
-            c.args(&["remote", "get-url", remote_name]);
+            c.args(["remote", "get-url", remote_name]);
         }) {
             Ok(output) => Ok(String::from_utf8_lossy(&output.stdout).trim_end().to_owned()),
             Err(err) => Err(err),
@@ -120,7 +120,7 @@ impl Git {
         // Remove remote if it already exists
         self.exec(|c| {
             c.current_dir(&path);
-            c.args(&["remote", "remove", remote_name]);
+            c.args(["remote", "remove", remote_name]);
         })
         .ok();
 
@@ -128,7 +128,7 @@ impl Git {
         self.exec(|c| {
             c.current_dir(&path);
 
-            c.args(&["remote", "add", remote_name]);
+            c.args(["remote", "add", remote_name]);
             c.arg(url);
         })?;
 
@@ -140,7 +140,7 @@ impl Git {
         self.exec(|c| {
             c.current_dir(path);
 
-            c.args(&["fetch", remote_name, "--prune"]);
+            c.args(["fetch", remote_name, "--prune"]);
         })?;
 
         Ok(())
@@ -151,7 +151,7 @@ impl Git {
         match self.exec_output(|c| {
             c.current_dir(path);
 
-            c.args(&["rev-parse", "--show-toplevel"]);
+            c.args(["rev-parse", "--show-toplevel"]);
         }) {
             Ok(output) => Ok(PathBuf::from_str(String::from_utf8_lossy(&output.stdout).trim_end()).unwrap()),
             Err(err) => Err(err),
@@ -163,7 +163,7 @@ impl Git {
         let output = self.exec_output(|c| {
             c.current_dir(&path);
 
-            c.args(&["rev-parse", "--abbrev-ref", "HEAD"]);
+            c.args(["rev-parse", "--abbrev-ref", "HEAD"]);
         })?;
 
         let out = String::from_utf8_lossy(&output.stdout).trim_end().to_string();
@@ -174,7 +174,7 @@ impl Git {
         let output = self.exec_output(|c| {
             c.current_dir(&path);
 
-            c.args(&["rev-parse", "HEAD"]);
+            c.args(["rev-parse", "HEAD"]);
         })?;
 
         Ok(GitRev::Commit(
