@@ -111,6 +111,20 @@ impl Git {
         }
     }
 
+    /// Remove remote
+    pub fn remove_remote(&self, path: impl AsRef<Path>, remote_name: &str) -> Result<(), GitError> {
+        // Remove remote if it already exists
+        self.exec(|c| {
+            c.current_dir(&path);
+            c.args(["remote", "remove", remote_name]);
+
+            // Suppress error message printed by Git if the remote doesn't exist - we don't care
+            c.stderr(Stdio::null());
+        })?;
+
+        Ok(())
+    }
+
     /// Set remote url
     pub fn force_remote_url(
         &self,
@@ -119,14 +133,7 @@ impl Git {
         url: impl AsRef<OsStr>,
     ) -> Result<(), GitError> {
         // Remove remote if it already exists
-        self.exec(|c| {
-            c.current_dir(&path);
-            c.args(["remote", "remove", remote_name]);
-
-            // Suppress error message printed by Git if the remote doesn't exist - we don't care
-            c.stderr(Stdio::null());
-        })
-        .ok();
+        self.remove_remote(&path, remote_name).ok();
 
         // Add remote
         self.exec(|c| {

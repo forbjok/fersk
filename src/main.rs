@@ -144,12 +144,12 @@ fn main() -> Result<(), anyhow::Error> {
                     .with_context(|| "Error cloning git repository")?;
             }
 
-            for copy_remote in copy_remote {
+            for copy_remote in copy_remote.iter() {
                 let remote_url = git
-                    .get_remote_url(&repository_root_path, &copy_remote)
+                    .get_remote_url(&repository_root_path, copy_remote)
                     .with_context(|| "Error getting copy remote URL")?;
 
-                git.force_remote_url(&work_path, &copy_remote, remote_url)
+                git.force_remote_url(&work_path, copy_remote, remote_url)
                     .with_context(|| "Error setting copy remote URL")?;
             }
 
@@ -169,6 +169,10 @@ fn main() -> Result<(), anyhow::Error> {
                 c.current_dir(&work_path);
                 c.args(&args[1..]);
             })?;
+
+            for copy_remote in copy_remote.iter() {
+                git.remove_remote(&work_path, copy_remote).ok();
+            }
 
             if json_out {
                 let output = JsonOutput {
