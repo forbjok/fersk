@@ -39,15 +39,18 @@ impl PidLock {
         }
 
         // Try to create a PID file...
-        if let Ok(mut file) = fs::File::create(&path) {
-            // Write our PID to the newly created file.
-            if let Err(err) = file.write(format!("{}", std::process::id()).as_bytes()) {
-                error!("Could not write PID-lock file: {}", err.to_string());
+        match fs::File::create(&path) {
+            Ok(mut file) => {
+                // Write our PID to the newly created file.
+                if let Err(err) = file.write(format!("{}", std::process::id()).as_bytes()) {
+                    error!("Could not write PID-lock file: {}", err.to_string());
+                    return None;
+                }
+            }
+            _ => {
+                error!("Could not create PID-lock file!");
                 return None;
             }
-        } else {
-            error!("Could not create PID-lock file!");
-            return None;
         };
 
         Some(Self { path })
