@@ -38,8 +38,11 @@ enum Command {
         branch: Option<String>,
         #[clap(long = "commit", help = "Specify commit to check out")]
         commit: Option<String>,
-        #[clap(long = "copy-remote", help = "Specify remote to copy to the working repository")]
-        copy_remote: Option<String>,
+        #[clap(
+            long = "copy-remote",
+            help = "Specify remote to copy to the working repository (can be specified multiple times)"
+        )]
+        copy_remote: Vec<String>,
         #[clap(last = true)]
         args: Vec<String>,
 
@@ -141,7 +144,7 @@ fn main() -> Result<(), anyhow::Error> {
                     .with_context(|| "Error cloning git repository")?;
             }
 
-            if let Some(copy_remote) = copy_remote {
+            for copy_remote in copy_remote {
                 let remote_url = git
                     .get_remote_url(&repository_root_path, &copy_remote)
                     .with_context(|| "Error getting copy remote URL")?;
