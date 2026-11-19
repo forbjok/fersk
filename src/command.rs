@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 
 pub fn exec_command(command: &str, f: impl FnOnce(&mut Command)) -> Result<(), anyhow::Error> {
     let mut command = Command::new(command);

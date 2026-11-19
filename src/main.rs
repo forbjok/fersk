@@ -5,7 +5,7 @@ mod util;
 
 use std::{path::PathBuf, process::Stdio};
 
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use clap::Parser;
 use config::Config;
 use serde_derive::Serialize;
@@ -99,9 +99,9 @@ fn main() -> Result<(), anyhow::Error> {
 
             let pidlock_path = work_root.join(format!(".locks/{source_path_hash}.pid"));
             util::create_parent_dir(&pidlock_path).with_context(|| "Cannot create PID lock directory.")?;
-            let _pidlock = PidLock::acquire(pidlock_path).with_context(|| {
-                "Could not acquire PID lock. Another process is already running in this repository."
-            })?;
+            let _pidlock = PidLock::acquire(pidlock_path).with_context(
+                || "Could not acquire PID lock. Another process is already running in this repository.",
+            )?;
 
             // If a branch is specified, use that. Otherwise, use the branch we're currently in.
             let branch = if let Some(branch) = branch {
