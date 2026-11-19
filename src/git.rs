@@ -121,6 +121,9 @@ impl Git {
         self.exec(|c| {
             c.current_dir(&path);
             c.args(["remote", "remove", remote_name]);
+
+            // Suppress error message printed by Git if the remote doesn't exist - we don't care
+            c.stderr(Stdio::null());
         })
         .ok();
 
