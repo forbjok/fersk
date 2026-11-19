@@ -14,16 +14,16 @@ lto = true
 opt-level = "z"
 
 [dependencies]
-anyhow = "1.0.75"
-clap = { version = "4.4.2", features = ["derive"] }
-dirs = "5.0.1"
+anyhow = "1.0.104"
+clap = { version = "4.6.8", features = ["derive"] }
+dirs = "7.0.0"
 hex = "0.4.3"
-serde = "1.0.188"
-serde_derive = "1.0.188"
-serde_json = "1.0.105"
-sha2 = "0.10.7"
-sysinfo = "0.29.9"
-thiserror = "1.0.47"
-toml = "0.7.6"
-tracing = "0.1.37"
-tracing-subscriber = { version = "0.3.17", features = ["env-filter"] }
+serde = "1.0.229"
+serde_derive = "1.0.229"
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+sysinfo = "0.40.4"
+thiserror = "2.0.21"
+toml = "1.2.1"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
