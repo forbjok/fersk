@@ -71,6 +71,7 @@ impl Git {
         self.exec(|c| {
             c.current_dir(&path);
 
+            c.args(["-c", "advice.detachedHead=false"]);
             c.args(["checkout", rev.as_ref()]);
         })?;
 
