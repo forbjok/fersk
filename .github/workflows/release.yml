@@ -27,7 +27,7 @@ jobs:
       run: python build.py win64 win32 chocolatey
 
     - name: Publish
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@v3
       with:
         files: "dist/*"
       env:
