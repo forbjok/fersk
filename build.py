@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 
 import contextlib
+import hashlib
+import json
 import os
 import platform
+import shutil
+import subprocess
 import sys
+from collections.abc import Sequence
+from pathlib import Path
 
 is_windows = platform.system() == "Windows"
 
-root_path = os.path.abspath(os.path.dirname(__file__))
-dist_path = os.path.join(root_path, "dist")
-staging_root_path = os.path.join(root_path, "staging")
+root_path = Path(__file__).resolve().parent
+dist_path = root_path.joinpath("dist")
+staging_root_path = root_path.joinpath("staging")
 
 app_name = "fersk"
 bin_name = "fersk"
 
 
 def get_version() -> str:
-    import json
-
-    with open(os.path.join(root_path, "version.json"), "r", encoding="utf-8") as f:
+    with open(root_path.joinpath("version.json"), "r", encoding="utf-8") as f:
         vobj = json.load(f)
 
     return vobj["FullVersion"]
@@ -28,8 +32,8 @@ version = get_version()
 
 
 @contextlib.contextmanager
-def cd(path: str):
-    old_cwd = os.getcwd()
+def cd(path: Path | str):
+    old_cwd = Path.cwd()
 
     os.chdir(path)
 
@@ -39,37 +43,29 @@ def cd(path: str):
         os.chdir(old_cwd)
 
 
-def rmdir(path: str):
-    import shutil
+def rmdir(path: Path | str):
+    path = Path(path)
 
-    if not os.path.exists(path):
-        return
-
-    shutil.rmtree(path)
+    with contextlib.suppress(FileNotFoundError):
+        shutil.rmtree(path)
 
 
-def rmfile(path: str):
-    if not os.path.exists(path):
-        return
+def rmfile(path: Path | str):
+    path = Path(path)
 
-    os.remove(path)
+    path.unlink(missing_ok=True)
 
 
-def cmd(description: str, args: list[str]):
-    import subprocess
-
+def cmd(description: str, args: Sequence[str | Path]):
     print(f"--- {description} ---")
     subprocess.run(args, check=True)
 
 
-def create_tarball(archive_name: str, path: str):
-    import hashlib
-
-    # Create dist directory
-    os.makedirs(dist_path, exist_ok=True)
+def create_tarball(archive_name: str, path: Path | str):
+    path = Path(path)
 
     archive_file = f"{archive_name}.tar.zst"
-    archive_path = os.path.join(dist_path, archive_file)
+    archive_path = dist_path.joinpath(archive_file)
 
     # Delete old archive
     rmfile(archive_path)
@@ -84,14 +80,11 @@ def create_tarball(archive_name: str, path: str):
         f.write(checksum.hexdigest())
 
 
-def create_zip(archive_name: str, path: str):
-    import hashlib
-
-    # Create dist directory
-    os.makedirs(dist_path, exist_ok=True)
+def create_zip(archive_name: str, path: Path | str):
+    path = Path(path)
 
     archive_file = f"{archive_name}.zip"
-    archive_path = os.path.join(dist_path, archive_file)
+    archive_path = dist_path.joinpath(dist_path, archive_file)
 
     # Delete old archive
     rmfile(archive_path)
@@ -107,13 +100,13 @@ def create_zip(archive_name: str, path: str):
 
 
 def build(name: str, target: str):
-    staging_path = os.path.join(staging_root_path, name)
+    staging_path = staging_root_path.joinpath(name)
 
     # Delte old staging directory
     rmdir(staging_path)
 
     # Create staging directory
-    os.makedirs(staging_path)
+    staging_path.mkdir(parents=True, exist_ok=True)
 
     # Build
     print("--- BUILDING ---")
@@ -122,12 +115,12 @@ def build(name: str, target: str):
     return staging_path
 
 
-def copy_bin(staging_path: str, target: str, bin_name: str):
-    import shutil
+def copy_bin(staging_path: Path | str, target: str, bin_name: str):
+    staging_path = Path(staging_path)
 
     print("--- COPYING BIN ---")
     shutil.copy2(
-        os.path.join(root_path, "target", target, "release", bin_name), staging_path
+        root_path.joinpath("target", target, "release", bin_name), staging_path
     )
 
 
@@ -178,7 +171,7 @@ def build_win32():
 
 
 def build_chocolatey():
-    version_txt_path = os.path.join(dist_path, "VERSION.txt")
+    version_txt_path = dist_path.joinpath("VERSION.txt")
 
     with open(version_txt_path, "w", encoding="utf-8") as f:
         f.write(version)
@@ -198,7 +191,7 @@ def build_chocolatey():
     rmfile(version_txt_path)
 
 
-configurations = {
+CONFIGURATIONS = {
     "linux64": {
         "build": build_linux64,
     },
@@ -218,13 +211,20 @@ configurations = {
 
 
 def main() -> int:
+    to_build = []
     for cfg_name in sys.argv[1:]:
-        configuration = configurations.get(cfg_name)
-        if configuration is None:
+        cfg = CONFIGURATIONS.get(cfg_name)
+        if cfg is None:
             print(f"Configuration '{cfg_name}' does not exist.")
             continue
 
-        configuration["build"]()
+        to_build.append(cfg)
+
+    if to_build:
+        dist_path.mkdir(parents=True, exist_ok=True)
+
+        for cfg in to_build:
+            cfg["build"]()
 
     return 0
 
